@@ -10,9 +10,10 @@ export default class Board extends React.Component {
     const clients = this.getClients();
     this.state = {
       clients: {
-        backlog: clients.filter(client => !client.status || client.status === 'backlog'),
-        inProgress: clients.filter(client => client.status && client.status === 'in-progress'),
-        complete: clients.filter(client => client.status && client.status === 'complete'),
+        // REQUIREMENT: All tasks should now show in the backlog swimlane initially
+        backlog: clients, 
+        inProgress: [],
+        complete: [],
       }
     }
     this.swimlanes = {
@@ -21,6 +22,39 @@ export default class Board extends React.Component {
       complete: React.createRef(),
     }
   }
+
+  componentDidMount() {
+    // 1. Initialize Dragula with the DOM elements from the refs
+    this.drake = Dragula([
+      this.swimlanes.backlog.current,
+      this.swimlanes.inProgress.current,
+      this.swimlanes.complete.current,
+    ]);
+
+    // 2. Handle the 'drop' event to change card colors
+    this.drake.on('drop', (el, target) => {
+      // Clear existing status classes
+      el.classList.remove('gu-transit'); // Dragula cleanup
+      
+      // Update color based on the target lane ID
+      // We use the 'name' or 'id' logic to determine the color
+      const targetName = target.previousSibling.innerText.toLowerCase();
+
+      if (targetName.includes('backlog')) {
+        el.className = 'Card Card-grey';
+      } else if (targetName.includes('in progress')) {
+        el.className = 'Card Card-blue';
+      } else if (targetName.includes('complete')) {
+        el.className = 'Card Card-green';
+      }
+    });
+  }
+
+  // Ensure we tear down the Dragula instance when the component unmounts
+  componentWillUnmount() {
+    this.drake.destroy();
+  }
+
   getClients() {
     return [
       ['1','Stark, White and Abbott','Cloned Optimal Architecture', 'in-progress'],
@@ -35,7 +69,7 @@ export default class Board extends React.Component {
       ['10','Romaguera Inc','Managed Foreground Toolset', 'backlog'],
       ['11','Reilly-King','Future-Proofed Interactive Toolset', 'complete'],
       ['12','Emard, Champlin and Runolfsdottir','Devolved Needs-Based Capability', 'backlog'],
-      ['13','Fritsch, Cronin and Wolff','Open-Source 3Rdgeneration Website', 'complete'],
+      ['13','Fritsch, Cronin and Wolff','Open-Source 3rdgeneration Website', 'complete'],
       ['14','Borer LLC','Profit-Focused Incremental Orchestration', 'backlog'],
       ['15','Emmerich-Ankunding','User-Centric Stable Extranet', 'in-progress'],
       ['16','Willms-Abbott','Progressive Bandwidth-Monitored Access', 'in-progress'],
@@ -50,6 +84,7 @@ export default class Board extends React.Component {
       status: companyDetails[3],
     }));
   }
+
   renderSwimlane(name, clients, ref) {
     return (
       <Swimlane name={name} clients={clients} dragulaRef={ref}/>
@@ -61,13 +96,14 @@ export default class Board extends React.Component {
       <div className="Board">
         <div className="container-fluid">
           <div className="row">
-            <div className="col-md-4">
+            {/* REQUIREMENT: All swimlanes should have the class "Swimlane-column" */}
+            <div className="col-md-4 Swimlane-column">
               {this.renderSwimlane('Backlog', this.state.clients.backlog, this.swimlanes.backlog)}
             </div>
-            <div className="col-md-4">
+            <div className="col-md-4 Swimlane-column">
               {this.renderSwimlane('In Progress', this.state.clients.inProgress, this.swimlanes.inProgress)}
             </div>
-            <div className="col-md-4">
+            <div className="col-md-4 Swimlane-column">
               {this.renderSwimlane('Complete', this.state.clients.complete, this.swimlanes.complete)}
             </div>
           </div>
